@@ -1,0 +1,1315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Polyglow — Your AI language companion</title>
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js');
+    });
+  }
+</script>
+
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#000000;
+    --card:#0b0b0f;
+    --muted:#9aa3ad;
+    --text:#eef2fb;
+    --accent1:#b38aff;
+    --accent2:#7a4dff;
+    --glass: rgba(255,255,255,0.03);
+    --border: rgba(255,255,255,0.06);
+    --radius:12px;
+    --shadow: 0 10px 30px rgba(0,0,0,0.6);
+    --transition: all .18s ease;
+    --tab-height:72px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+    display:flex;
+    justify-content:center;
+    padding:22px;
+  }
+
+  .wrap{width:100%;max-width:1100px}
+  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px}
+  .brand{display:flex;gap:12px;align-items:center}
+  /* logo kept top-left */
+  .image-slot{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--accent1),var(--accent2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px}
+  .title{font-weight:700;font-size:1.05rem}
+  .subtitle{font-size:13px;color:var(--muted)}
+  .header-actions{display:flex;gap:8px}
+  .action-btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 12px;border-radius:10px;color:var(--text);cursor:pointer;display:flex;gap:8px;align-items:center;}
+  .action-btn:hover{background:rgba(255,255,255,0.02);transform:translateY(-2px)}
+  .app{display:flex;gap:20px;align-items:flex-start}
+  @media(max-width:880px){ .app{ flex-direction:column; padding:12px } }
+
+  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.006));border-radius:14px;padding:18px;border:1px solid rgba(255,255,255,0.03);box-shadow:var(--shadow);}
+  .left{flex:1.3} .right{flex:0.75;min-width:260px}
+
+  .translate-card{display:flex;flex-direction:column;gap:12px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  select{background:#111118;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:10px;font-size:14px;outline:none;min-width:110px}
+  textarea{background:#0d0d14;border:1px solid rgba(255,255,255,0.03);color:var(--text);padding:12px;border-radius:12px;min-height:120px;resize:vertical;font-size:15px;font-family:inherit;outline:none;}
+
+  .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--text);cursor:pointer;transition:var(--transition);}
+  .icon-btn:hover{background:rgba(255,255,255,0.03);transform:translateY(-3px);box-shadow:0 8px 20px rgba(123,59,255,0.09)}
+
+  .primary{display:inline-flex;gap:8px;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent1),var(--accent2));border:none;padding:10px 14px;border-radius:10px;color:white;font-weight:700;cursor:pointer;box-shadow:0 10px 30px rgba(123,59,255,0.12);transition:var(--transition);}
+  .primary:hover{transform:translateY(-3px);opacity:.96}
+
+  .translate-row{display:flex;align-items:center;gap:8px}
+  .translate-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px}
+
+  .output{background:#0b0b10;border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,0.03);min-height:80px}
+  .translated{font-weight:700;font-size:18px}
+  .detected{font-size:12px;color:var(--muted);margin-top:6px}
+
+  .ai-box{
+    background: linear-gradient(180deg,#07070a,#050506);
+    border:1px solid rgba(179,138,255,0.10);
+    color:#eae9ff;
+    border-radius:10px;
+    padding:12px;
+    box-shadow:0 8px 30px rgba(7,6,10,0.7);
+  }
+  .ai-title{font-weight:700;color:#f6f3ff}
+  .ai-content{margin-top:10px;color:#eae9ff;line-height:1.5}
+  .ai-small-actions{display:flex;gap:8px;margin-top:10px;align-items:center}
+
+  .conversation-panel{margin-top:12px}
+  .coach-panel{background:#0b0b10;border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,0.02);color:var(--text)}
+
+  .saved-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;max-height:300px;overflow:auto}
+  .saved-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;background:#0d0d14;border:1px solid rgba(255,255,255,0.02);cursor:pointer}
+  .saved-item:hover{box-shadow:0 8px 24px rgba(123,59,255,0.06);transform:translateY(-2px)}
+  .choice{padding:10px;border-radius:8px;background:#0f0f14;border:1px solid rgba(255,255,255,0.02);cursor:pointer;margin-top:8px}
+  .choice.correct{background:linear-gradient(135deg,#59d6a7,#47b784);color:#05120a}
+  .choice.wrong{background:#4b2b2b;color:#ffd6d6}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .tip{font-size:13px;color:var(--muted);margin-top:8px;text-align:center}
+  .hidden{display:none}
+  .level-card{background:#0d0d14;border:1px solid rgba(255,255,255,0.03);padding:12px;border-radius:10px;margin-top:12px}
+  .progress-bar{height:10px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden}
+  .progress-bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent1),var(--accent2));width:0%}
+  .level-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+  .level-toggle{background:transparent;border:1px solid rgba(255,255,255,0.03);padding:6px 8px;border-radius:8px;color:var(--text);cursor:pointer}
+  .word-box{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;background:linear-gradient(180deg,#09090d,#070709);border:1px solid rgba(179,138,255,0.06);margin-top:8px}
+  .small-speaker{width:36px;height:36px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.04);cursor:pointer}
+  .mcq-summary{margin-top:8px;color:var(--muted)}
+
+  .study-hidden{max-height:0;opacity:0;overflow:hidden;transition:all .28s ease;pointer-events:none}
+  .study-show{max-height:1200px;opacity:1;transition:all .28s ease;pointer-events:auto}
+
+  /* translate bar responsiveness: keep long and shrink */
+  .translate-bar { width:100%; max-width:980px; margin:0 auto; transition:all .18s ease; }
+  @media(max-width:700px){ .translate-bar{padding:0 12px; max-width:100%;} }
+
+  /* bottom mobile tab bar (visible on small screens) */
+  .mobile-tabs {
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    height:var(--tab-height);
+    display:none;
+    align-items:center;
+    justify-content:space-around;
+    background:linear-gradient(180deg, rgba(7,7,9,0.98), rgba(5,5,7,0.98));
+    border-top:1px solid rgba(255,255,255,0.04);
+    padding:10px 8px;
+    z-index:1200;
+    backdrop-filter: blur(6px);
+  }
+  .mobile-tab { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--muted);font-size:12px;cursor:pointer;padding:6px 10px;border-radius:10px; transition:var(--transition); }
+  .mobile-tab.active { color:var(--text); background: linear-gradient(90deg, rgba(179,138,255,0.06), rgba(122,77,255,0.04)); box-shadow: 0 6px 20px rgba(123,59,255,0.06); }
+  .mobile-tab i { width:22px;height:22px;display:block; }
+
+  /* mobile behavior: show bottom tabs */
+  @media (max-width:880px) {
+    .mobile-tabs { display:flex; }
+    /* when in mobile tabs mode, hide the right panel by default */
+    body.mobile-tabbed .right { display:none !important; }
+    /* show only translate area unless switching */
+    body.mobile-tabbed .left { display:block; }
+    /* when coach tab active, hide translate controls but show coach panel */
+    body.mobile-tabbed.tab-coach .translate-card > :not(.conversation-panel) { display:none; }
+    body.mobile-tabbed.tab-coach .conversation-panel { display:block; }
+    /* when translate tab active, show translate card normally, keep coach minimized */
+    body.mobile-tabbed.tab-translate .translate-card > :not(.conversation-panel) { display:block; }
+    body.mobile-tabbed.tab-translate .conversation-panel { display:none; }
+    /* when study tab active, hide left and show right by temporarily revealing right as main */
+    body.mobile-tabbed.tab-study .left { display:none !important; }
+    body.mobile-tabbed.tab-study .right { display:block !important; }
+    /* when WOD tab active, show WOD list and hide other heavy elements */
+    body.mobile-tabbed.tab-wod .left { display:none !important; }
+    body.mobile-tabbed.tab-wod .right { display:block !important; }
+    /* adjust padding at bottom so content isn't hidden behind tab bar */
+    body.mobile-tabbed { padding-bottom: calc(var(--tab-height) + 28px); }
+  }
+
+  /* responsiveness */
+  @media(max-width:880px){
+    .app{flex-direction:column}
+    .right{order:2;width:100%}
+    .header{flex-direction:column;align-items:flex-start;gap:10px}
+    .image-slot{width:44px;height:44px}
+    .title{font-size:1rem}
+    textarea{min-height:110px; width: 100%;}@media(max-width:480px){
+  textarea{
+    width: 100%;
+    font-size: 17px !important;
+  }
+}
+
+    .icon-btn{width:40px;height:40px}
+    .primary{padding:10px 12px}
+    .small-speaker{width:32px;height:32px}
+  }
+
+  @media(max-width:420px){
+    body{padding:12px}
+    .image-slot{width:36px;height:36px}
+    .title{font-size:0.98rem}
+    .header-actions{width:100%;justify-content:space-between}
+    select, textarea{font-size:14px}
+  }
+  @media (max-width:880px) {
+  .header-actions {
+    display: none !important;
+  }
+}
+@media(max-width:880px){
+  /* move trash icon under swap button */
+  #btnClear {
+    display: block;
+    margin: 10px auto 0 auto !important;
+    order: 3; /* move below the language row elements */
+  }
+
+  /* ensure the container allows reflow vertically */
+  .row[style*="justify-content:space-between"] {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* tighten up spacing */
+  .row[style*="justify-content:space-between"] > div {
+    margin: 4px 0;
+  }
+}
+
+/* Make the coach panel scrollable and keep input visible on mobile */
+@media (max-width: 880px) {
+  .coach-panel {
+    display: flex;
+    flex-direction: column;
+    max-height: 75vh; /* Prevent it from exceeding screen height */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  #coachArea {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 80px; /* Prevent content from being hidden under keyboard */
+  }
+
+  #coachInput {
+    position: sticky;
+    bottom: 0;
+    background: #0d0d14;
+    z-index: 20;
+  }
+}
+/* ====== AI Coach compact styling ====== */
+.coach-panel select {
+  background: #0d0d14;
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text);
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  width: 110px;         /* 👈 smaller width */
+  transition: all .2s ease;
+}
+
+.coach-panel select:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+/* Make the controls neatly spaced */
+.coach-panel > div:nth-child(2) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Center the whole line on smaller screens */
+@media (max-width: 880px) {
+  .coach-panel > div:nth-child(2) {
+    justify-content: center;
+  }
+  .coach-panel select {
+    width: 90px;        /* 👈 narrower on phones */
+    font-size: 12px;
+    padding: 5px 6px;
+  }
+  #coachStart {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  #coachStop {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+</style>
+</head><script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js')
+    .then(() => console.log('✅ Service Worker registered'))
+    .catch(err => console.error('Service Worker registration failed', err));
+}
+</script>
+<script>
+async function requestMicAccess() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    console.log("Microphone access granted.");
+    // If you want to connect to AI speech recognition later, pass `stream` to it here.
+    stream.getTracks().forEach(track => track.stop()); // stop if you only needed permission
+  } catch (err) {
+    console.error("Microphone access denied:", err);
+    alert("Please allow microphone access so the AI can listen to you.");
+  }
+}
+
+// Optional: automatically ask for permission when AI coach starts
+document.addEventListener('DOMContentLoaded', () => {
+  const coachStart = document.getElementById('coachStart');
+  if (coachStart) {
+    coachStart.addEventListener('click', requestMicAccess);
+  }
+});
+</script>
+
+<script>
+async function requestMicAccess() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    console.log("Microphone access granted.");
+    // If you want to connect to AI speech recognition later, pass `stream` to it here.
+    stream.getTracks().forEach(track => track.stop()); // stop if you only needed permission
+  } catch (err) {
+    console.error("Microphone access denied:", err);
+    alert("Please allow microphone access so the AI can listen to you.");
+  }
+}
+
+// Optional: automatically ask for permission when AI coach starts
+document.addEventListener('DOMContentLoaded', () => {
+  const coachStart = document.getElementById('coachStart');
+  if (coachStart) {
+    coachStart.addEventListener('click', requestMicAccess);
+  }
+});
+</script>
+
+</body><button id="installBtn" class="primary" style="display:none;position:fixed;right:16px;top:16px;z-index:2000;">
+  Install Polyglow
+</button>
+
+<script>
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBtn').style.display='block';
+});
+installBtn.onclick = async()=>{
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if(outcome==='accepted') installBtn.textContent='Installed!';
+  deferredPrompt=null;
+};
+</script>
+
+  <div class="wrap">
+    <div class="header">
+      <div class="brand">
+        <!-- logo kept -->
+        <div class="image-slot" id="avatarSlot" aria-hidden="true">PG</div>
+
+        <div>
+          <div class="title">Polyglow</div>
+          <div class="subtitle">AI language companion — translate & practice</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- user-check toggles AI coach (desktop) -->
+        <button id="btnToggleCoach" class="action-btn" title="Toggle AI Coach"><i data-lucide="user-check"></i>&nbsp;AI Coach</button>
+        <!-- book toggles Study (desktop) -->
+        <button id="btnBook" class="action-btn" title="Show / Hide Study"><i data-lucide="book"></i></button>
+      </div>
+    </div>
+
+    <div class="app">
+      <!-- LEFT -->
+      <div class="left panel translate-card translate-bar">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div style="display:flex;gap:12px;flex:1;align-items:center">
+            <div style="flex:1">
+              <label style="font-size:13px;color:var(--muted)">From</label><br>
+              <select id="fromLang">
+                <option value="auto">Auto Detect</option>
+                <option value="en">English</option>
+                <option value="de">German</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="tr">Turkish</option>
+              </select>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center">
+              <button id="swapBtn" class="icon-btn" title="Swap languages"><i data-lucide="repeat"></i></button>
+            </div>
+
+            <div style="flex:1">
+              <label style="font-size:13px;color:var(--muted)">To</label><br>
+              <select id="toLang">
+                <option value="en">English</option>
+                <option value="de">German</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="tr">Turkish</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-left:12px">
+            <button id="btnClear" class="icon-btn" title="Clear"><i data-lucide="trash-2"></i></button>
+          </div>
+        </div>
+
+        <textarea id="inputText" placeholder="Type or paste text — or speak using mic"></textarea>
+
+        <div class="controls" style="align-items:center">
+          <button id="btnMic" class="icon-btn" title="Mic (speech input)"><i data-lucide="mic"></i></button>
+
+          <div class="translate-row" style="margin-left:6px">
+            <button id="btnTranslate" class="primary" title="Translate">
+              <span class="translate-icon"><i data-lucide="globe"></i></span>
+              <span>Translate</span>
+            </button>
+          </div>
+
+          <button id="btnSave" class="icon-btn" title="Save"><i data-lucide="star"></i></button>
+
+          <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+            <button id="btnSpeakOut" class="icon-btn" title="Speak translation"><i data-lucide="volume-2"></i></button>
+            <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px">
+              <input id="autoVoice" type="checkbox"> Auto voice
+            </label>
+          </div>
+        </div>
+
+        <div id="resultCard" class="output" style="margin-top:12px">
+          <div class="translated" id="translatedText">—</div>
+          <div class="detected" id="detectedLang">Detected: —</div>
+
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <select id="explainMode" class="explain-select" title="Explanation mode">
+              <option value="bilingual">Bilingual (Target + English)</option>
+              <option value="target">Target only</option>
+              <option value="english">English only</option>
+            </select>
+            <button id="btnExplainRun" class="primary" style="padding:8px 12px">Explain</button>
+          </div>
+
+          <div id="aiBox" class="ai-box hidden" style="margin-top:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div class="ai-title" id="aiTitle">AI Explanation</div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <button id="aiSmallSpeak" class="icon-btn" title="Play explanation"><i data-lucide="volume"></i></button>
+                <button id="collapseAi" class="icon-btn" title="Collapse"><i data-lucide="chevrons-up"></i></button>
+              </div>
+            </div>
+            <div id="aiContent" class="ai-content"></div>
+          </div>
+
+        </div>
+
+        <div class="tip">Tip: AI Coach explains mistakes in <strong>English</strong> and shows corrected text in the <strong>target language</strong>.</div>
+
+        <!-- Coach inside left panel -->
+        <div class="conversation-panel" style="margin-top:14px">
+          <div class="coach-panel" id="coachPanel">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:700">AI Coach (practice)</div>
+              <div style="font-size:13px;color:var(--muted)">Practice rounds & voice supported</div>
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+              <label style="font-size:13px;color:var(--muted)">Language</label>
+              <select id="coachLang">
+                <option value="en">English</option><option value="fr">French</option><option value="de">German</option><option value="es">Spanish</option><option value="tr">Turkish</option>
+              </select>
+
+              <label style="font-size:13px;color:var(--muted);margin-left:8px">Level</label>
+              <select id="coachLevel"><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select>
+
+              <button id="coachStart" class="primary" style="margin-left:auto">Start Practice</button>
+              <button id="coachStop" class="icon-btn" title="Stop"><i data-lucide="square"></i></button>
+            </div>
+
+            <div id="coachArea" style="margin-top:12px">
+              <div id="coachPrompt" style="font-weight:700;color:#eae9ff">Press Start to get a practice prompt.</div>
+              <div id="coachFeedback" style="margin-top:10px;color:var(--muted)">Feedback will appear here in English; corrections will appear in the target language.</div><div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
+  <button id="coachMic" class="icon-btn" title="Speak answer"><i data-lucide="mic"></i></button>
+  <input id="coachInput" placeholder="Type your reply here"
+    style="flex:1;background:#0d0d14;border:1px solid rgba(255,255,255,0.03);
+           padding:8px;border-radius:8px;color:var(--text)">
+  <button id="coachSend" class="primary">Send</button>
+</div>
+
+<div id="coachRoundsBox" style="text-align:center;margin-top:8px;color:var(--muted);font-size:13px">
+  Rounds: <span id="coachRounds">0</span>
+</div>
+
+            </div>
+
+          </div>
+        </div>
+
+        <div id="quizBox" class="hidden" style="margin-top:12px"></div>
+      </div>
+
+      <!-- RIGHT (Study) -->
+      <div class="right panel">
+        <h3 style="margin-top:0">Study / Saved</h3>
+
+        <!-- Words of the Day inside study -->
+        <div style="display:flex;gap:8px;align-items:center">
+          <label style="font-size:13px;color:var(--muted)">Words of the Day</label>
+          <select id="wodLang">
+            <option value="en">English</option><option value="fr">French</option><option value="de">German</option><option value="es">Spanish</option><option value="tr">Turkish</option>
+          </select>
+          <button id="getWOD" class="primary">Get Words</button>
+          <button id="toggleStudyPanel" class="icon-btn" title="Hide/Show Study"><i data-lucide="chevrons-down"></i></button>
+        </div>
+
+        <div id="wodList" style="margin-top:10px"></div>
+
+        <div id="studyInner" class="study-hidden">
+          <ul id="savedList" class="saved-list" style="margin-top:10px"></ul>
+
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <button id="startQuiz" class="primary" style="flex:1">Start Quiz</button>
+            <button id="clearSaved" class="icon-btn" title="Clear saved"><i data-lucide="trash-2"></i></button>
+          </div>
+
+          <div style="margin-top:14px" class="panel">
+            <div style="font-weight:700">Progress</div>
+            <div style="color:var(--muted);margin-top:8px">Saved words: <span id="savedCount">0</span></div>
+            <div style="color:var(--muted);margin-top:6px">Quizzes done: <span id="quizzes">0</span></div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;text-align:center;color:var(--muted);font-size:13px">
+          Tip: Click the speaker to hear words. Save useful words to study for MCQs.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile tab bar (visible on small screens) -->
+  <nav class="mobile-tabs" id="mobileTabs" aria-hidden="true">
+    <div class="mobile-tab" data-tab="translate" id="tabTranslate" title="Translate">
+      <i data-lucide="globe"></i>
+      <div>Translate</div>
+    </div>
+    <div class="mobile-tab" data-tab="coach" id="tabCoach" title="Coach">
+      <i data-lucide="user-check"></i>
+      <div>Coach</div>
+    </div>
+    <div class="mobile-tab" data-tab="study" id="tabStudy" title="Study">
+      <i data-lucide="book"></i>
+      <div>Study</div>
+    </div>
+    <div class="mobile-tab" data-tab="wod" id="tabWod" title="Word of the Day">
+      <i data-lucide="star"></i>
+      <div>WOD</div>
+    </div>
+  </nav>
+
+
+<script>
+/* ================= Polyglow Mobile Tabs + preserved logic =================
+   - Adds bottom mobile-only tab bar switching:
+     translate / coach / study / wod
+   - On mobile: only one main area visible at a time, desktop behavior unchanged
+   - All existing IDs & logic preserved
+   - Keep backend URL
+========================================================================== */
+
+lucide.createIcons && lucide.createIcons();
+
+const AI_BACKEND_URL = 'https://polyglow-backend.onrender.com/api/ask';
+
+// DOM hooks (many used later in original logic)
+const bodyEl = document.body;
+const mobileTabs = document.getElementById('mobileTabs');
+const tabs = document.querySelectorAll('.mobile-tab');
+const tabTranslate = document.getElementById('tabTranslate');
+const tabCoach = document.getElementById('tabCoach');
+const tabStudy = document.getElementById('tabStudy');
+const tabWod = document.getElementById('tabWod');
+
+function enableMobileTabModeIfNeeded(){
+  // apply a class to body to change behavior when viewport is small
+  if(window.matchMedia && window.matchMedia('(max-width:880px)').matches){
+    bodyEl.classList.add('mobile-tabbed');
+    mobileTabs.setAttribute('aria-hidden','false');
+  } else {
+    bodyEl.classList.remove('mobile-tabbed');
+    mobileTabs.setAttribute('aria-hidden','true');
+    // remove any tab state classes
+    bodyEl.classList.remove('tab-translate','tab-coach','tab-study','tab-wod');
+    // ensure right panel visible on desktop
+    const right = document.querySelector('.right');
+    if(right) right.style.display = '';
+    // ensure left is visible
+    const left = document.querySelector('.left');
+    if(left) left.style.display = '';
+  }
+}
+enableMobileTabModeIfNeeded();
+window.addEventListener('resize', enableMobileTabModeIfNeeded);
+
+// tab activation helper
+function activateTab(name){
+  // update mobile tab UI active state
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  // set body classes used by CSS to hide/show content
+  bodyEl.classList.remove('tab-translate','tab-coach','tab-study','tab-wod');
+  bodyEl.classList.add('tab-' + name);
+  // Small UX: when switching to coach, scroll coach into view
+  if(name === 'coach'){
+    const coach = document.getElementById('coachPanel');
+    if(coach){
+      // make sure left panel visible
+      const left = document.querySelector('.left');
+      if(left) left.style.display = '';
+      setTimeout(()=> coach.scrollIntoView({behavior:'smooth', block:'center'}), 250);
+    }
+  }
+  // when study/wod open, ensure right shows
+  if((name === 'study' || name === 'wod') && window.matchMedia('(max-width:880px)').matches){
+    const right = document.querySelector('.right');
+    if(right) right.style.display = 'block';
+  }
+}
+
+// attach mobile tab clicks
+tabs.forEach(t => t.addEventListener('click', ()=> activateTab(t.dataset.tab)));
+
+// set default mobile tab: Translate
+activateTab('translate');
+
+/* ---------------- keep original behavior for toggles (desktop) ---------------- */
+const btnBook = document.getElementById('btnBook'), studyInner = document.getElementById('studyInner'), toggleStudyPanel = document.getElementById('toggleStudyPanel');
+btnBook && btnBook.addEventListener('click', ()=>{
+  if(studyInner.classList.contains('study-show')){
+    studyInner.classList.remove('study-show'); studyInner.classList.add('study-hidden');
+  } else {
+    studyInner.classList.remove('study-hidden'); studyInner.classList.add('study-show');
+  }
+});
+toggleStudyPanel && toggleStudyPanel.addEventListener('click', ()=> btnBook.click());
+
+const btnToggleCoach = document.getElementById('btnToggleCoach'), coachPanel = document.getElementById('coachPanel');
+btnToggleCoach && btnToggleCoach.addEventListener('click', ()=>{
+  if(coachPanel.style.display === 'none' || coachPanel.classList.contains('hidden')){
+    coachPanel.style.display = 'block';
+    coachPanel.classList.remove('hidden');
+    btnToggleCoach.style.background = 'linear-gradient(135deg,var(--accent1),var(--accent2))';
+  } else {
+    coachPanel.style.display = 'none';
+    coachPanel.classList.add('hidden');
+    btnToggleCoach.style.background = 'transparent';
+  }
+});
+
+/* ----------------- Other logic preserved from previous file ----------------- */
+/* For brevity I re-use the original code blocks (translate, AI, coach, WOD, saved, quiz, etc.)
+   This file keeps all original behaviors and IDs intact. The mobile tab switching is additive. */
+
+const fromLang = document.getElementById('fromLang'), toLang = document.getElementById('toLang');
+const inputText = document.getElementById('inputText'), btnTranslate = document.getElementById('btnTranslate');
+const btnMic = document.getElementById('btnMic'), btnClear = document.getElementById('btnClear');
+const translatedText = document.getElementById('translatedText'), detectedLangEl = document.getElementById('detectedLang');
+const btnSpeakOut = document.getElementById('btnSpeakOut'), autoVoice = document.getElementById('autoVoice');
+
+const btnExplain = document.getElementById('btnExplain'), btnExplainRun = document.getElementById('btnExplainRun'), explainMode = document.getElementById('explainMode');
+const aiBox = document.getElementById('aiBox'), aiContent = document.getElementById('aiContent'), aiSmallSpeak = document.getElementById('aiSmallSpeak'), collapseAi = document.getElementById('collapseAi');
+
+const swapBtn = document.getElementById('swapBtn');
+
+const coachLang = document.getElementById('coachLang'), coachLevel = document.getElementById('coachLevel');
+const coachStart = document.getElementById('coachStart'), coachStop = document.getElementById('coachStop');
+const coachPrompt = document.getElementById('coachPrompt'), coachFeedback = document.getElementById('coachFeedback');
+const coachMic = document.getElementById('coachMic'), coachInput = document.getElementById('coachInput'), coachSend = document.getElementById('coachSend');
+const coachRoundsEl = document.getElementById('coachRounds');
+
+const getWOD = document.getElementById('getWOD'), wodLang = document.getElementById('wodLang'), wodList = document.getElementById('wodList');
+
+const savedListEl = document.getElementById('savedList'), btnSave = document.getElementById('btnSave'), startQuiz = document.getElementById('startQuiz'), clearSaved = document.getElementById('clearSaved');
+const quizBox = document.getElementById('quizBox');
+
+let saved = JSON.parse(localStorage.getItem('polyglow.saved') || '[]');
+let perLanguageLevels = JSON.parse(localStorage.getItem('polyglow.levels') || '{}');
+let quizzesDone = Number(localStorage.getItem('polyglow.quizzes') || 0);
+
+// small helpers
+function renderIcons(){ if(window.lucide && lucide.createIcons) lucide.createIcons(); }
+function escapeHtml(s){ return (s+'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+function tryJSON(s){ try{return JSON.parse(s);}catch(e){return null;} }
+function renderMarkdown(text){
+  if(!text) return '';
+  return escapeHtml(text)
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/__(.*?)__/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/_(.*?)_/g,'<em>$1</em>')
+    .replace(/\n/g,'<br>');
+}
+function speak(text, lang){
+  if(!text) return;
+  const map = { en:'en-US', fr:'fr-FR', es:'es-ES', de:'de-DE', tr:'tr-TR' };
+  const u = new SpeechSynthesisUtterance(text.replace(/<\/?[^>]+(>|$)/g,""));
+  u.lang = map[lang] || (lang.length===2 ? `${lang}-${lang.toUpperCase()}` : 'en-US');
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+function speechToText(lang){ return new Promise((res, rej)=>{
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR) return rej(new Error('Speech not supported'));
+  const r = new SR(); r.interimResults=false; r.maxAlternatives=1;
+  r.lang = (lang==='auto' ? 'en-US' : (lang.length===2? `${lang}-${lang.toUpperCase()}`:lang));
+  r.onresult = e => res(e.results[0][0].transcript);
+  r.onerror = e => rej(e.error || e);
+  try{ r.start(); } catch(e){ rej(e); }
+}); }
+
+// AI backend wrapper
+async function aiRequest(prompt){
+  try{
+    const res = await fetch(AI_BACKEND_URL, {
+      method:'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ message: prompt })
+    });
+    const j = await res.json();
+    if(typeof j === 'string') return j;
+    if(j.reply) return j.reply;
+    if(j.choices?.[0]?.message?.content) return j.choices[0].message.content;
+    if(j.text) return j.text;
+    return JSON.stringify(j);
+  }catch(e){
+    console.error('AI request error', e);
+    throw e;
+  }
+}
+
+/* ---------------- Translator ---------------- */
+btnTranslate && btnTranslate.addEventListener('click', async ()=>{
+  const text = inputText.value.trim();
+  if(!text) return alert('Type something to translate');
+  translatedText.textContent = '⏳ Translating...';
+  aiBox.classList.add('hidden'); quizBox.classList.add('hidden');
+  try{
+    const sl = fromLang.value === 'auto' ? 'auto' : fromLang.value;
+    const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(toLang.value)}&dt=t&q=${encodeURIComponent(text)}`);
+    if(!r.ok) throw new Error('translate failed');
+    const d = await r.json();
+    const out = d?.[0]?.[0]?.[0] ?? text;
+    const detected = d?.[2] ?? sl;
+    translatedText.textContent = out;
+    detectedLangEl.textContent = 'Detected: ' + (fromLang.value==='auto' ? (detected || 'auto') : fromLang.value);
+    inputText.dataset.detectedLang = detected || fromLang.value;
+    if(autoVoice.checked) speak(out, toLang.value);
+  }catch(e){
+    console.error(e);
+    translatedText.textContent = '⚠️ Translation failed';
+    detectedLangEl.textContent = 'Detected: —';
+  }
+});
+
+const swapBtnEl = document.getElementById('swapBtn');
+swapBtnEl && swapBtnEl.addEventListener('click', ()=>{
+  const a = fromLang.value, b = toLang.value;
+  fromLang.value = b; toLang.value = a;
+  const inVal = inputText.value, outVal = (translatedText.textContent && translatedText.textContent !== '—') ? translatedText.textContent : '';
+  inputText.value = outVal; translatedText.textContent = inVal || '—';
+  detectedLangEl.textContent = 'Detected: —';
+});
+
+btnClear && btnClear.addEventListener('click', ()=>{ inputText.value=''; translatedText.textContent='—'; detectedLangEl.textContent='Detected: —'; aiBox.classList.add('hidden'); quizBox.classList.add('hidden'); });
+
+(function mainMic(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ btnMic && (btnMic.disabled=true); if(btnMic) btnMic.title='Speech not supported'; return; }
+  const rec = new SR(); rec.continuous=false; rec.interimResults=false;
+  rec.onresult = e => inputText.value = e.results[0][0].transcript;
+  rec.onerror = e => console.warn('rec err', e);
+  btnMic && btnMic.addEventListener('click', ()=> {
+    rec.lang = (fromLang.value === 'auto' ? 'en-US' : (fromLang.value.length===2 ? `${fromLang.value}-${fromLang.value.toUpperCase()}` : fromLang.value));
+    try{ rec.start(); } catch(e){ console.warn(e); alert('Speech recognition not available'); }
+  });
+})();
+
+btnSpeakOut && btnSpeakOut.addEventListener('click', ()=> {
+  const t = translatedText.textContent; if(!t || t==='—') return;
+  speak(t, toLang.value);
+});
+
+/* ---------------- AI Explain ---------------- */
+btnExplainRun && btnExplainRun.addEventListener('click', async ()=>{
+  const text = inputText.value.trim(); if(!text) return alert('Type something first');
+  aiBox.classList.remove('hidden'); aiContent.innerHTML = '<div style="opacity:.9">🤖 Asking AI…</div>'; quizBox.classList.add('hidden');
+  let source = (fromLang.value === 'auto') ? (inputText.dataset.detectedLang || 'en') : fromLang.value;
+  if(!source) source = 'en';
+  const mode = explainMode.value, target = toLang.value;
+  const names = { en:'English', fr:'French', de:'German', es:'Spanish', tr:'Turkish' };
+  try{
+    let prompt = '';
+    if(mode==='bilingual'){
+      prompt = `You are an expert language teacher. The user provided: "${text}". Source language: ${source}. Provide a bilingual explanation with **bold headings in English** (Meaning, Grammar, Examples) followed by the same content in ${names[target]}. Keep explanations short and practical. Use simple markup; if you must return JSON, also include a plain text explanation.`;
+    } else if(mode==='target'){
+      prompt = `You are an expert language teacher. Explain "${text}" in ${names[target]} only. Provide meaning and two short examples.`;
+    } else {
+      prompt = `You are an expert language teacher. Explain "${text}" in English only: meaning, grammar, and two short examples.`;
+    }
+    const reply = await aiRequest(prompt);
+    let out = reply;
+    const maybe = tryJSON(reply);
+    if(maybe && typeof maybe === 'object') out = Object.values(maybe).join('\n\n');
+    aiContent.innerHTML = renderMarkdown(out);
+    aiSmallSpeak && (aiSmallSpeak.onclick = ()=> { if(mode === 'english') speak(out,'en'); else speak(out,target); });
+    if(autoVoice.checked){ if(mode === 'english') speak(out,'en'); else speak(out,target); }
+  }catch(err){
+    console.error('AI explain error', err);
+    aiContent.innerHTML = '<div style="color:#ff9b9b">AI request failed — check backend.</div>';
+  }
+});
+collapseAi && collapseAi.addEventListener('click', ()=> aiBox.classList.add('hidden'));
+
+/* ---------------- Words of the Day ---------------- */
+getWOD && getWOD.addEventListener('click', async ()=>{
+  const lang = wodLang.value;
+  wodList.innerHTML = '<div style="color:var(--muted)">Fetching words…</div>';
+  try{
+    const prompt = `Provide 3 random useful single words or short phrases in ${lang}. Return JSON array like [{"word":"...","meaning":"...","example":"..."}]. Keep examples short.`;
+    const resp = await aiRequest(prompt);
+    let arr = tryJSON(resp);
+    if(!Array.isArray(arr)){
+      const jsMatch = (typeof resp==='string') ? resp.match(/\[.*\]/s) : null;
+      if(jsMatch) arr = tryJSON(jsMatch[0]);
+    }
+    if(!Array.isArray(arr)){
+      const lines = (typeof resp==='string' ? resp : String(resp)).split('\n').map(l=>l.trim()).filter(Boolean);
+      arr = lines.slice(0,3).map(l=>{
+        const parts = l.split(' - ');
+        return { word: parts[0]||l, meaning: parts[1]||'', example: parts[2]||'' };
+      });
+    }
+    if(!Array.isArray(arr) || arr.length === 0){
+      arr = [{word:'hola',meaning:'hello',example:'Hola — ¿Cómo estás?'},{word:'gracias',meaning:'thank you',example:'Gracias.'}];
+    }
+    shuffle(arr);
+    wodList.innerHTML = '';
+    arr.slice(0,4).forEach((w, i) => {
+      const box = document.createElement('div'); box.className='word-box';
+      box.innerHTML = `<div>
+        <div style="font-weight:700">${escapeHtml(w.word||w[0]||'')}</div>
+        <div style="color:var(--muted);font-size:13px">${escapeHtml(w.meaning||'')}</div>
+        <div style="margin-top:6px;color:#eae9ff;font-size:13px">${escapeHtml(w.example||'')}</div>
+      </div>`;
+      const right = document.createElement('div');
+      const sp = document.createElement('button'); sp.className='small-speaker'; sp.title='Play'; sp.innerHTML = '<i data-lucide="volume"></i>';
+      sp.onclick = ()=> speak(`${w.word}. ${w.example||''}`, lang);
+      const sv = document.createElement('button'); sv.className='small-speaker'; sv.title='Save to study'; sv.style.marginLeft='8px'; sv.innerHTML = '<i data-lucide="star"></i>';
+      sv.onclick = ()=> {
+        saved.unshift({ from: w.word || w[0] || '', to: w.meaning || '', level: '', addedAt: Date.now() });
+        localStorage.setItem('polyglow.saved', JSON.stringify(saved));
+        updateSavedUI();
+        alert('Saved to study');
+      };
+      right.appendChild(sp); right.appendChild(sv);
+      box.appendChild(right);
+      wodList.appendChild(box);
+    });
+    renderIcons();
+  }catch(e){
+    console.error('WOD error', e);
+    wodList.innerHTML = '<div style="color:#ff9b9b">Failed to fetch words. Try again.</div>';
+  }
+});
+
+/* ---------------- Saved & Study UI ---------------- */
+function updateSavedUI(){
+  savedListEl.innerHTML = '';
+  if(saved.length === 0) savedListEl.innerHTML = '<div style="color:var(--muted)">No saved words yet.</div>';
+  else {
+    saved.forEach((s,i)=>{
+      const li = document.createElement('li'); li.className='saved-item';
+      li.innerHTML = `<div>
+        <div style="font-weight:700">${escapeHtml(s.from)}</div>
+        <div class="meta" style="color:var(--muted)">${escapeHtml(s.to)}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="icon-btn load-btn" data-i="${i}" title="Load"><i data-lucide="corner-up-left"></i></button>
+          <button class="icon-btn del-btn" data-i="${i}" title="Delete"><i data-lucide="trash-2"></i></button>
+        </div>`;
+      savedListEl.appendChild(li);
+    });
+    renderIcons();
+    document.querySelectorAll('.load-btn').forEach(b=> b.onclick = e => {
+      const idx = +e.currentTarget.dataset.i;
+      inputText.value = saved[idx].from; translatedText.textContent = saved[idx].to;
+    });
+    document.querySelectorAll('.del-btn').forEach(b=> b.onclick = e => {
+      const idx = +e.currentTarget.dataset.i; saved.splice(idx,1); localStorage.setItem('polyglow.saved', JSON.stringify(saved)); updateSavedUI();
+    });
+  }
+  const savedCountEl = document.getElementById('savedCount');
+  if(savedCountEl) savedCountEl.textContent = saved.length;
+}
+updateSavedUI();
+
+btnSave && btnSave.addEventListener('click', async ()=>{
+  const frm = inputText.value.trim(), to = translatedText.textContent.trim();
+  if(!frm || !to || to==='—') return alert('Translate first before saving');
+  try{
+    const prompt = `You are a CEFR rater. Estimate a likely CEFR tag for this short phrase: "${to}". Answer with just one tag like A1, A2, B1, B2, C1, or C2. Be conservative and encouraging.`;
+    const r = await aiRequest(prompt);
+    const m = (typeof r === 'string') ? r.match(/\b(A1|A2|B1|B2|C1|C2)\b/) : null;
+    const level = m ? m[0] : '';
+    saved.unshift({ from: frm, to, level, addedAt: Date.now() });
+    localStorage.setItem('polyglow.saved', JSON.stringify(saved));
+    updateSavedUI();
+    alert('Saved' + (level ? (' — estimated level: ' + level) : ''));
+  }catch(e){
+    saved.unshift({ from: frm, to, level: '', addedAt: Date.now() });
+    localStorage.setItem('polyglow.saved', JSON.stringify(saved));
+    updateSavedUI();
+    alert('Saved (level unknown)');
+  }
+});
+
+/* ---------------- Study panel toggle (desktop) already above ---------------- */
+
+/* ---------------- Quiz (MCQ) ---------------- */
+startQuiz && startQuiz.addEventListener('click', ()=>{
+  const pool = saved.filter(s=>s.from && s.to);
+  if(pool.length < 2) return alert('Save at least 2 items to start quiz');
+  runQuiz(pool);
+});
+
+function runQuiz(pool){
+  quizBox.classList.remove('hidden'); aiBox.classList.add('hidden');
+  quizBox.innerHTML = '';
+  const questions = pool.slice();
+  const total = Math.min(5, questions.length);
+  let score = 0, asked = 0;
+  function nextQ(){
+    if(asked >= total){
+      quizBox.innerHTML = `<div class="mcq-summary">Quiz finished — Score: ${score}/${total}</div>`;
+      quizzesDone++;
+      localStorage.setItem('polyglow.quizzes', String(quizzesDone));
+      const qEl = document.getElementById('quizzes'); if(qEl) qEl.textContent = String(quizzesDone);
+      return;
+    }
+    const idx = Math.floor(Math.random()*questions.length);
+    const item = questions.splice(idx,1)[0];
+    asked++;
+    quizBox.innerHTML = '';
+    const q = document.createElement('div'); q.style.fontWeight='700'; q.textContent = `What does "${item.from}" mean?`;
+    quizBox.appendChild(q);
+    const options = [item.to];
+    const candidates = saved.map(s=>s.to).filter(t=>t && t!==item.to);
+    shuffle(candidates);
+    for(let i=0;i<candidates.length && options.length<4;i++){
+      if(!options.includes(candidates[i])) options.push(candidates[i]);
+    }
+    while(options.length < Math.min(4, saved.length)) options.push(item.to + ' (alt)');
+    shuffle(options);
+    options.forEach(opt=>{
+      const b = document.createElement('button'); b.className='choice'; b.textContent = opt;
+      b.onclick = ()=>{
+        if(opt === item.to){ b.classList.add('correct'); score++; }
+        else b.classList.add('wrong');
+        setTimeout(()=> nextQ(), 650);
+      };
+      quizBox.appendChild(b);
+    });
+  }
+  nextQ();
+}
+
+/* ---------------- Coach (static panel) ---------------- */
+let coachActive = false, coachRounds = 0;
+coachStart && coachStart.addEventListener('click', async ()=>{
+  if(coachActive) return alert('Practice already started');
+  coachActive = true; coachRounds = 0; coachRoundsEl.textContent = '0';
+  coachPrompt.textContent = 'Preparing a short practice prompt...'; coachFeedback.textContent = '';
+  try{
+    const lang = coachLang.value, level = coachLevel.value;
+    const prompt = `You are a friendly tutor creating a short easy question for a learner (CEFR ${level}) in ${lang}. Output one short question only (one sentence).`;
+    const q = await aiRequest(prompt);
+    coachPrompt.textContent = q;
+    coachPrompt.onclick = ()=> speak(q, lang);
+  }catch(e){
+    console.error('coach start error', e);
+    coachPrompt.textContent = 'Failed to prepare practice.';
+  }
+});
+
+coachStop && coachStop.addEventListener('click', ()=> {
+  coachActive = false;
+  coachPrompt.textContent = 'Practice stopped.';
+  
+  // ✅ Auto-collapse the coach panel when stopped (especially for mobile)
+  const coachPanel = document.getElementById('coachPanel');
+  if (window.matchMedia('(max-width:880px)').matches) {
+    coachPanel.style.display = 'none';
+  }
+});
+
+
+coachMic && coachMic.addEventListener('click', async ()=>{
+  if(!coachActive) return alert('Start practice first');
+  const lang = coachLang.value;
+  coachFeedback.textContent = 'Listening...';
+  try{
+    const ans = await speechToText(lang);
+    coachInput.value = ans;
+    await processCoachAnswer(ans, lang);
+  }catch(e){
+    coachFeedback.textContent = 'No speech detected or permission denied.';
+    console.warn(e);
+  }
+});
+
+coachSend && coachSend.addEventListener('click', async ()=>{
+  if(!coachActive) return alert('Start practice first');
+  const txt = coachInput.value.trim(); if(!txt) return;
+  await processCoachAnswer(txt, coachLang.value);
+  coachInput.value = '';
+});
+
+async function processCoachAnswer(userText, lang){
+  coachRounds++; coachRoundsEl.textContent = String(coachRounds);
+  coachFeedback.textContent = 'Evaluating...';
+  try{
+    const level = coachLevel.value;
+    const prompt = `You are a gentle CEFR tutor for ${level} in ${lang}. The student answered: "${userText}". Provide JSON: {"feedback_en":"short feedback in English (2 sentences max)","correction":"short corrected sentence in ${lang} or empty","score":number 0-100,"next":"next short question (one sentence)"}.
+Be kind and generous in scoring — reward partial correctness. If you cannot produce strict JSON, provide a short plain reply including a percent and correction.`;
+    const raw = await aiRequest(prompt);
+    let parsed = tryJSON(raw);
+    if(!parsed || typeof parsed !== 'object'){
+      const scoreMatch = raw.match(/(\d{1,3})\s*%/);
+      const score = scoreMatch ? Number(scoreMatch[1]) : 70;
+      const corr = raw.match(/correction[:\-\s]*["']?(.+?)["']?(\n|$)/i) || raw.match(/Correction[:\-\s]*([^\n]+)/i);
+      const feedback = raw.split('\n').slice(0,2).join(' ');
+      const nextQ = raw.match(/next[:\-\s]*["']?(.+?)["']?(\n|$)/i);
+      parsed = { feedback_en: feedback, correction: corr ? corr[1] : '', score, next: nextQ ? nextQ[1] : '' };
+    }
+    let score = Math.round(parsed.score || parsed.score === 0 ? parsed.score : 70);
+    if(score < 55) score = Math.max(55, Math.round((score + (perLanguageLevels[lang]?.progress||60))/2));
+    score = Math.min(98, Math.max(30, score));
+    const feedbackText = parsed.feedback_en || 'Good attempt — keep going.';
+    const correctionText = parsed.correction || '';
+    coachFeedback.innerHTML = `<div style="font-weight:700">Feedback (English)</div><div style="margin-top:6px">${escapeHtml(feedbackText)}</div>${correctionText ? `<div style="margin-top:8px;font-style:italic;color:#f3e8ff">Correction (${lang}): ${escapeHtml(correctionText)}</div>` : ''}<div style="margin-top:8px;color:var(--muted)">Score: ${score}%</div>`;
+    const playBtn = document.createElement('button'); playBtn.className='small-speaker'; playBtn.style.marginTop='8px'; playBtn.textContent='🔊';
+    playBtn.onclick = ()=> { speak(feedbackText,'en'); if(correctionText) setTimeout(()=> speak(correctionText, lang),700); };
+    coachFeedback.appendChild(playBtn);
+
+    perLanguageLevels[lang] = perLanguageLevels[lang] || { level:'N/A', progress:0, note:'' };
+    const previous = perLanguageLevels[lang].progress || 0;
+    const newProgress = Math.round((previous*0.6) + (score*0.4));
+    perLanguageLevels[lang].progress = Math.max(previous, newProgress);
+    const lvlTag = newProgress >= 85 ? 'C1' : newProgress >= 70 ? 'B2' : newProgress >= 55 ? 'B1' : newProgress >= 45 ? 'A2' : 'A1';
+    perLanguageLevels[lang].level = lvlTag;
+    perLanguageLevels[lang].note = (parsed.feedback_en || '').slice(0,200);
+    localStorage.setItem('polyglow.levels', JSON.stringify(perLanguageLevels));
+    const nextQ = parsed.next || await (async ()=>{
+      try{ return await aiRequest(`Give one short follow-up question in ${lang} at CEFR ${level}. Output the question only.`); }
+      catch(e){ return ''; }
+    })();
+    if(nextQ){
+      await sleep(400);
+      coachPrompt.textContent = nextQ;
+      coachPrompt.onclick = ()=> speak(nextQ, lang);
+    }
+    if(coachRounds >= 3){
+      coachActive = false;
+      alert(`Practice finished. Estimated level: ${perLanguageLevels[lang].level} — ${perLanguageLevels[lang].progress}%`);
+    }
+  }catch(e){
+    console.error('processCoachAnswer err', e);
+    coachFeedback.textContent = 'Evaluation error — try again.';
+  }
+}
+
+/* ---------------- Final utilities & init ---------------- */
+window.addEventListener('beforeunload', ()=>{
+  localStorage.setItem('polyglow.saved', JSON.stringify(saved));
+  localStorage.setItem('polyglow.levels', JSON.stringify(perLanguageLevels));
+  localStorage.setItem('polyglow.quizzes', String(quizzesDone));
+});
+
+document.getElementById('quizzes') && (document.getElementById('quizzes').textContent = String(quizzesDone));
+renderIcons();
+updateSavedUI();
+// Ensure coach input stays visible when keyboard opens (mobile)
+const coachInputEl = document.getElementById('coachInput');
+if (coachInputEl) {
+  coachInputEl.addEventListener('focus', () => {
+    setTimeout(() => {
+      coachInputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  });
+}
+
+</script>
+
+
+<script>
+lucide.createIcons && lucide.createIcons();
+
+const AI_BACKEND_URL = 'https://polyglow-backend.onrender.com/api/ask';
+
+// DOM elements
+const bodyEl = document.body;
+const btnBook = document.getElementById('btnBook');
+const btnToggleCoach = document.getElementById('btnToggleCoach');
+const coachPanel = document.getElementById('coachPanel');
+const studyInner = document.getElementById('studyInner');
+const toggleStudyPanel = document.getElementById('toggleStudyPanel');
+const getWOD = document.getElementById('getWOD');
+const wodList = document.getElementById('wodList');
+const wodLang = document.getElementById('wodLang');
+const fromLang = document.getElementById('fromLang');
+const toLang = document.getElementById('toLang');
+const btnTranslate = document.getElementById('btnTranslate');
+const inputText = document.getElementById('inputText');
+const translatedText = document.getElementById('translatedText');
+const detectedLangEl = document.getElementById('detectedLang');
+const btnSpeakOut = document.getElementById('btnSpeakOut');
+const autoVoice = document.getElementById('autoVoice');
+const btnSave = document.getElementById('btnSave');
+const savedListEl = document.getElementById('savedList');
+const quizBox = document.getElementById('quizBox');
+const startQuiz = document.getElementById('startQuiz');
+const clearSaved = document.getElementById('clearSaved');
+const btnMic = document.getElementById('btnMic');
+const swapBtn = document.getElementById('swapBtn');
+
+// Mobile tab logic
+const mobileTabs = document.getElementById('mobileTabs');
+const tabs = document.querySelectorAll('.mobile-tab');
+function enableMobileTabs() {
+  if (window.innerWidth < 880) {
+    bodyEl.classList.add('mobile-tabbed');
+    mobileTabs.setAttribute('aria-hidden', 'false');
+  } else {
+    bodyEl.classList.remove('mobile-tabbed');
+    mobileTabs.setAttribute('aria-hidden', 'true');
+  }
+}
+enableMobileTabs();
+window.addEventListener('resize', enableMobileTabs);
+tabs.forEach(t => t.addEventListener('click', () => {
+  tabs.forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  bodyEl.className = 'mobile-tabbed tab-' + t.dataset.tab;
+}));
+tabs[0].classList.add('active');
+
+// Helpers
+function escapeHtml(s){ return (s+'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} }
+function tryJSON(s){ try{return JSON.parse(s);}catch{return null;} }
+function renderMarkdown(text){
+  return escapeHtml(text)
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/__(.*?)__/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/_(.*?)_/g,'<em>$1</em>')
+    .replace(/\n/g,'<br>');
+}
+function speak(t, lang) {
+  if (!t) return;
+  const u = new SpeechSynthesisUtterance(t);
+  const map = { en:'en-US', fr:'fr-FR', es:'es-ES', de:'de-DE', tr:'tr-TR' };
+  u.lang = map[lang] || 'en-US';
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+// AI request
+async function aiRequest(prompt) {
+  const res = await fetch(AI_BACKEND_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ message: prompt })
+  });
+  const j = await res.json();
+  return j.reply || j.text || j;
+}
+
+// Translator
+btnTranslate.addEventListener('click', async ()=>{
+  const text = inputText.value.trim();
+  if(!text) return alert('Type something to translate');
+  translatedText.textContent = 'Translating...';
+  try {
+    const sl = fromLang.value === 'auto' ? 'auto' : fromLang.value;
+    const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${toLang.value}&dt=t&q=${encodeURIComponent(text)}`);
+    const d = await r.json();
+    const out = d?.[0]?.[0]?.[0] ?? text;
+    const detected = d?.[2] ?? sl;
+    translatedText.textContent = out;
+    detectedLangEl.textContent = 'Detected: ' + (fromLang.value==='auto' ? detected : fromLang.value);
+    if(autoVoice.checked) speak(out, toLang.value);
+  } catch(e) {
+    translatedText.textContent = 'Translation failed.';
+  }
+});
+
+// Swap
+swapBtn.addEventListener('click', ()=>{
+  const temp = fromLang.value;
+  fromLang.value = toLang.value;
+  toLang.value = temp;
+  const inVal = inputText.value;
+  const outVal = translatedText.textContent;
+  inputText.value = outVal;
+  translatedText.textContent = inVal;
+});
+
+// Speech input
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR) {
+  const rec = new SR();
+  rec.interimResults = false;
+  rec.onresult = e => inputText.value = e.results[0][0].transcript;
+  btnMic.onclick = ()=>{ rec.lang='en-US'; rec.start(); };
+}
+
+// Speak translation
+btnSpeakOut.addEventListener('click', ()=> speak(translatedText.textContent, toLang.value));
+
+// Save words
+let saved = JSON.parse(localStorage.getItem('polyglow.saved')||'[]');
+function updateSaved(){
+  savedListEl.innerHTML='';
+  saved.forEach((s,i)=>{
+    const li=document.createElement('li');
+    li.className='saved-item';
+    li.innerHTML=`<div><b>${s.from}</b><br><span>${s.to}</span></div>`;
+    savedListEl.appendChild(li);
+  });
+  document.getElementById('savedCount').textContent=saved.length;
+}
+updateSaved();
+
+btnSave.addEventListener('click', ()=>{
+  if(!inputText.value || translatedText.textContent==='—') return alert('Translate first');
+  saved.unshift({from:inputText.value,to:translatedText.textContent});
+  localStorage.setItem('polyglow.saved',JSON.stringify(saved));
+  updateSaved();
+});
+
+// Quiz
+startQuiz.addEventListener('click', ()=>{
+  const pool=saved;
+  if(pool.length<2) return alert('Save at least 2 items');
+  let score=0,q=0;
+  quizBox.classList.remove('hidden');
+  function next(){
+    if(q>=5){ quizBox.innerHTML=`Score: ${score}/5`; return; }
+    const item=pool[Math.floor(Math.random()*pool.length)];
+    const options=[item.to];
+    shuffle(pool);
+    for(let p of pool){ if(options.length<4 && p.to!==item.to) options.push(p.to); }
+    shuffle(options);
+    quizBox.innerHTML=`<b>What does "${item.from}" mean?</b><br>`;
+    options.forEach(opt=>{
+      const b=document.createElement('button'); b.className='choice'; b.textContent=opt;
+      b.onclick=()=>{ if(opt===item.to){b.classList.add('correct');score++;}else b.classList.add('wrong'); setTimeout(next,600); };
+      quizBox.appendChild(b);
+    });
+    q++;
+  }
+  next();
+});
+
+// Word of the Day
+getWOD.addEventListener('click', async ()=>{
+  wodList.innerHTML='Fetching...';
+  try {
+    const prompt=`Give 3 random common words in ${wodLang.value} with meanings and examples in JSON [{"word":"","meaning":"","example":""}]`;
+    const res=await aiRequest(prompt);
+    let arr=tryJSON(res);
+    if(!arr) arr=[{word:'hola',meaning:'hello',example:'Hola amigo'}];
+    shuffle(arr);
+    wodList.innerHTML='';
+    arr.forEach(w=>{
+      const div=document.createElement('div');
+      div.className='word-box';
+      div.innerHTML=`<div><b>${w.word}</b><br>${w.meaning}<br><i>${w.example}</i></div>`;
+      const speakBtn=document.createElement('button');
+      speakBtn.className='small-speaker'; speakBtn.innerHTML='<i data-lucide="volume"></i>';
+      speakBtn.onclick=()=>speak(`${w.word}. ${w.example}`,wodLang.value);
+      const saveBtn=document.createElement('button');
+      saveBtn.className='small-speaker'; saveBtn.innerHTML='<i data-lucide="star"></i>';
+      saveBtn.onclick=()=>{saved.unshift({from:w.word,to:w.meaning});localStorage.setItem('polyglow.saved',JSON.stringify(saved));updateSaved();};
+      div.appendChild(speakBtn);
+      div.appendChild(saveBtn);
+      wodList.appendChild(div);
+    });
+    lucide.createIcons();
+  } catch {
+    wodList.innerHTML='Failed to load words.';
+  }
+});
+
+// Study toggle
+btnBook.onclick = ()=> studyInner.classList.toggle('study-show');
+toggleStudyPanel.onclick = ()=> btnBook.click();
+
+// Coach toggle
+btnToggleCoach.onclick = ()=> coachPanel.classList.toggle('hidden');
+
+</script>
+</body>
+</html>

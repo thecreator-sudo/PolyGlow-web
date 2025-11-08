@@ -1,0 +1,13 @@
+{
+  "name": "PolyGlow",
+  "short_name": "PolyGlow",
+  "start_url": "/polyglow-web/",
+  "scope": "/polyglow-web/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#7a4dff",
+  "icons": [
+    { "src": "/polyglow-web/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/polyglow-web/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
